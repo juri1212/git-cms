@@ -17,6 +17,13 @@ use uuid::Uuid;
 pub struct Create {
     title: String,
     base_branch: Option<String>,
+    initial_file: InitialFile,
+}
+#[derive(Deserialize)]
+pub struct InitialFile {
+    path: String,
+    content: String,
+    message: String,
 }
 #[derive(Deserialize)]
 pub struct Write {
@@ -73,15 +80,18 @@ pub async fn create(
     CurrentUser(user): CurrentUser,
     Json(request): Json<Create>,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    if request.title.trim().is_empty() {
+    let Create {
+        title,
+        base_branch,
+        initial_file,
+    } = request;
+    if title.trim().is_empty() {
         return Err(AppError::bad_request(
             "invalid_title",
             "session title cannot be empty",
         ));
     }
-    let base = request
-        .base_branch
-        .unwrap_or_else(|| state.config.repository.default_branch.clone());
+    let base = base_branch.unwrap_or_else(|| state.config.repository.default_branch.clone());
     if base.starts_with('-') || base.contains("..") || base.contains(' ') {
         return Err(AppError::bad_request("invalid_ref", "invalid base branch"));
     }
@@ -91,9 +101,16 @@ pub async fn create(
         "{}{}/{id}",
         state.config.repository.branch_prefix, user.login
     );
-    state
+    let commit = state
         .repo
-        .create_branch(&base, &branch, &user.token)
+        .create_branch_with_initial_file(
+            &base,
+            &branch,
+            &initial_file.path,
+            &initial_file.content,
+            &initial_file.message,
+            &user,
+        )
         .await?;
     let metadata = SessionMetadata {
         session_id: id,
@@ -103,10 +120,10 @@ pub async fn create(
     };
     let (number, url) = state
         .github
-        .create_pr(&user.token, &request.title, &branch, &base, &metadata)
+        .create_pr(&user.token, &title, &branch, &base, &metadata)
         .await?;
     Ok(Json(
-        json!({"session_id":id,"branch":branch,"base_branch":base,"pull_request":{"number":number,"url":url,"draft":true}}),
+        json!({"session_id":id,"branch":branch,"base_branch":base,"commit":commit,"pull_request":{"number":number,"url":url,"draft":true}}),
     ))
 }
 pub async fn list(

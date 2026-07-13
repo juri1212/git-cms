@@ -207,17 +207,34 @@ impl GitRepository {
         .to_owned();
         Ok((text, commit))
     }
-    pub async fn create_branch(
+    pub async fn create_branch_with_initial_file(
         &self,
         base: &str,
         branch: &str,
-        token: &str,
-    ) -> Result<(), AppError> {
+        file: &str,
+        value: &str,
+        message: &str,
+        user: &UserCredential,
+    ) -> Result<String, AppError> {
+        let path = content::validate(&self.config.content, file)?;
+        if value.len() as u64 > self.config.content.max_file_bytes {
+            return Err(AppError::new(
+                axum::http::StatusCode::PAYLOAD_TOO_LARGE,
+                "file_too_large",
+                "file exceeds configured size limit",
+            ));
+        }
         let _g = self.lock.lock().await;
-        self.fetch(token).await?;
+        self.fetch(&user.token).await?;
         self.git(&["checkout", "-B", branch, &format!("origin/{base}")])
             .await?;
-        self.push(branch, token).await
+        self.ensure_safe_target(&path, false).await?;
+        let absolute = self.path().join(&path);
+        if let Some(parent) = absolute.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        tokio::fs::write(absolute, value).await?;
+        self.commit_push(&path, message, branch, user).await
     }
     async fn checkout_session(&self, branch: &str, token: &str) -> Result<(), AppError> {
         self.fetch(token).await?;
@@ -388,28 +405,48 @@ impl GitRepository {
     ) -> Result<String, AppError> {
         self.git(&["add", "-A", "--", &path.to_string_lossy()])
             .await?;
+        if !self.has_staged_changes().await? {
+            return Err(AppError::bad_request(
+                "no_changes",
+                "content is unchanged; edit it before saving",
+            ));
+        }
         self.commit(message, user).await?;
         let id = self.commit_id().await?;
         self.push(branch, &user.token).await?;
         Ok(id)
+    }
+    async fn has_staged_changes(&self) -> Result<bool, AppError> {
+        let output = Command::new("git")
+            .arg("-C")
+            .arg(self.path())
+            .args(["diff", "--cached", "--quiet"])
+            .output()
+            .await?;
+        match output.status.code() {
+            Some(0) => Ok(false),
+            Some(1) => Ok(true),
+            _ => Err(AppError::internal(
+                String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            )),
+        }
     }
     async fn commit(&self, message: &str, user: &UserCredential) -> Result<(), AppError> {
         let email = format!(
             "{}+{}@users.noreply.github.com",
             user.github_user_id, user.login
         );
-        let output = Command::new("git")
+        let mut command = Command::new("git");
+        command
             .arg("-C")
             .arg(self.path())
-            .args([
-                "-c",
-                &format!("user.name={}", user.login),
-                "-c",
-                &format!("user.email={email}"),
-                "commit",
-                "-m",
-                message,
-            ])
+            .arg("-c")
+            .arg(format!("user.name={}", user.login))
+            .arg("-c")
+            .arg(format!("user.email={email}"))
+            .arg("commit");
+        let output = command
+            .args(["-m", message])
             .env("GIT_AUTHOR_NAME", &user.login)
             .env("GIT_AUTHOR_EMAIL", &email)
             .env("GIT_COMMITTER_NAME", &user.login)
@@ -519,6 +556,23 @@ mod tests {
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].path, "content");
         assert_eq!(entries[0].kind, "directory");
+    }
+
+    #[tokio::test]
+    async fn detects_staged_content_changes() {
+        let temp = create_seed_repo();
+        let config = config(temp.path().to_path_buf());
+        let github = GithubClient::new(config.clone()).unwrap();
+        let repo = GitRepository {
+            config,
+            github,
+            lock: Arc::new(Mutex::new(())),
+        };
+
+        assert!(!repo.has_staged_changes().await.unwrap());
+        std::fs::write(temp.path().join("content/home.md"), "updated\n").unwrap();
+        repo.git(&["add", "content/home.md"]).await.unwrap();
+        assert!(repo.has_staged_changes().await.unwrap());
     }
 
     #[test]

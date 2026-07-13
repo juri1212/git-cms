@@ -36,6 +36,14 @@ impl AppError {
 }
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        if self.status.is_server_error() {
+            tracing::error!(
+                status = %self.status,
+                code = self.code,
+                error_detail = %self.message,
+                "request failed"
+            );
+        }
         (
             self.status,
             Json(Body {

@@ -16,17 +16,14 @@ pub fn router(state: AppState) -> Router {
         .route("/auth/github/callback", get(auth::callback))
         .route("/api/me", get(auth::me))
         .route("/api/files", get(files::list))
-        .route("/api/files/{*path}", get(files::read))
+        .route("/api/files/*path", get(files::read))
         .route("/api/sessions", get(sessions::list).post(sessions::create))
-        .route("/api/sessions/{session_id}", get(sessions::get))
+        .route("/api/sessions/:session_id", get(sessions::get))
         .route(
-            "/api/sessions/{session_id}/files/{*path}",
+            "/api/sessions/:session_id/files/*path",
             put(sessions::write).delete(sessions::delete),
         )
-        .route(
-            "/api/sessions/{session_id}/moves",
-            post(sessions::move_file),
-        )
-        .route("/api/sessions/{session_id}/ready", post(sessions::ready))
+        .route("/api/sessions/:session_id/moves", post(sessions::move_file))
+        .route("/api/sessions/:session_id/ready", post(sessions::ready))
         .with_state(state)
 }

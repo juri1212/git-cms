@@ -12,6 +12,23 @@ using the authenticated GitHub user's GitHub App user token.
    `http://localhost:3000/auth/github/callback` (or your configured public URL).
 4. Run `cargo run`.
 
+## Example frontend
+
+The `frontend` directory contains a small Vite-based editor. It handles the
+GitHub sign-in callback, keeps the CMS JWT in browser local storage, and creates
+a draft session automatically when the user first saves a file.
+
+In a second terminal, run:
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. The supplied `cms.example.toml` already uses
+`http://localhost:5173/auth/callback` as its `frontend_callback_url`.
+
 Start authorization at `GET /auth/github/start`. The callback redirects to
 `server.frontend_callback_url?token=<cms-jwt>`; the frontend sends that token
 as `Authorization: Bearer <cms-jwt>` to `/api/*`.
