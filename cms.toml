@@ -13,7 +13,7 @@ commit_author_name = "Git CMS"
 commit_author_email = "git-cms@example.com"
 
 [content]
-roots = ["content/**", "pages/**", "data/**/*.json", "data/**/*.yaml", "data/**/*.yml", "README.md"]
+roots = ["content/**"]
 max_file_bytes = 1048576
 editable_extensions = ["md", "mdx", "json", "yaml", "yml", "txt"]
 
