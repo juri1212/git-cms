@@ -16,9 +16,9 @@ form { display: grid; gap: 9px; }
 label { font-weight: 650; }
 .hint { margin-top: -4px; color: #667085; font-size: .82rem; }
 code { padding: 1px 4px; background: #f2f4f7; border-radius: 4px; }
-input, textarea { width: 100%; padding: 11px 12px; border: 1px solid #cfd4dc; border-radius: 8px; font: inherit; }
+input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid #cfd4dc; border-radius: 8px; font: inherit; }
 textarea { resize: vertical; line-height: 1.5; }
-input:focus, textarea:focus { outline: 3px solid #dcd7ff; border-color: #6956d6; }
+input:focus, select:focus, textarea:focus { outline: 3px solid #dcd7ff; border-color: #6956d6; }
 .button { display: inline-block; width: fit-content; margin-top: 10px; padding: 10px 15px; background: #5b47cb; color: white; border: 0; border-radius: 8px; font: inherit; font-weight: 650; text-decoration: none; cursor: pointer; }
 .button:hover { background: #4937ae; }
 .button:disabled { opacity: .65; cursor: wait; }

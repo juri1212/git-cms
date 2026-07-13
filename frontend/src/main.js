@@ -6,10 +6,12 @@ const signedOut = document.querySelector("#signed-out");
 const editor = document.querySelector("#editor");
 const user = document.querySelector("#user");
 const form = document.querySelector("#save-form");
+const filePicker = document.querySelector("#file-picker");
 const filename = document.querySelector("#filename");
 const content = document.querySelector("#content");
 const save = document.querySelector("#save");
 const status = document.querySelector("#status");
+let fileLoadRequest = 0;
 
 function setStatus(message, isError = false) {
   status.textContent = message;
@@ -56,7 +58,61 @@ async function showEditor() {
   user.textContent = `Signed in as ${me.login} · ${me.repository}`;
   signedOut.hidden = true;
   editor.hidden = false;
+  await loadAvailableFiles();
 }
+
+async function listFiles(path = "") {
+  const query = path ? `?path=${encodeURIComponent(path)}` : "";
+  const result = await api(`/api/files${query}`);
+  const entries = await Promise.all(
+    result.entries.map(async (entry) => {
+      if (entry.kind === "directory") return listFiles(entry.path);
+      return [entry];
+    }),
+  );
+  return entries.flat();
+}
+
+async function loadAvailableFiles() {
+  filePicker.disabled = true;
+  filePicker.innerHTML = '<option value="">Loading available files…</option>';
+  try {
+    const files = await listFiles("content");
+    files.sort((a, b) => a.path.localeCompare(b.path));
+    filePicker.innerHTML = '<option value="">Select a file…</option>';
+    for (const file of files) {
+      const option = document.createElement("option");
+      option.value = file.path;
+      option.textContent = file.path;
+      filePicker.append(option);
+    }
+    filePicker.disabled = files.length === 0;
+    if (files.length === 0) setStatus("No editable files are available.");
+  } catch (error) {
+    filePicker.innerHTML = '<option value="">Unable to load files</option>';
+    setStatus(`Could not load available files: ${error.message}`, true);
+  }
+}
+
+filePicker.addEventListener("change", async () => {
+  const path = filePicker.value;
+  if (!path) return;
+
+  const request = ++fileLoadRequest;
+  filePicker.disabled = true;
+  setStatus(`Loading ${path}…`);
+  try {
+    const file = await api(`/api/files/${apiPath(path)}`);
+    if (request !== fileLoadRequest) return;
+    filename.value = file.path;
+    content.value = file.content;
+    setStatus(`Loaded ${file.path}.`);
+  } catch (error) {
+    if (request === fileLoadRequest) setStatus(`Could not load ${path}: ${error.message}`, true);
+  } finally {
+    if (request === fileLoadRequest) filePicker.disabled = false;
+  }
+});
 
 async function getSession(path, initialContent) {
   const existing = sessionStorage.getItem(sessionKey);
@@ -80,7 +136,10 @@ async function getSession(path, initialContent) {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const path = filename.value.trim();
-  if (!path) return;
+  if (!path.startsWith("content/")) {
+    setStatus("Select a file from content/ before saving.", true);
+    return;
+  }
 
   save.disabled = true;
   setStatus("Saving…");

@@ -24,9 +24,15 @@
           <button id="sign-out" class="link-button" type="button">Sign out</button>
         </div>
         <form id="save-form">
+          <label for="file-picker">Existing file</label>
+          <select id="file-picker" name="file-picker" disabled>
+            <option value="">Loading available files…</option>
+          </select>
+          <small class="hint">Choose an existing file from <code>content/</code> to load its current content.</small>
+
           <label for="filename">File name</label>
-          <input id="filename" name="filename" placeholder="content/welcome.md" required />
-          <small class="hint">Use an allowed path, for example <code>content/welcome.md</code>, <code>pages/about.md</code>, or <code>README.md</code>.</small>
+          <input id="filename" name="filename" placeholder="Select a file above" required readonly />
+          <small class="hint">The file path is set by the selector and must remain inside <code>content/</code>.</small>
 
           <label for="content">Content</label>
           <textarea id="content" name="content" rows="16" placeholder="Write your content here…"></textarea>
