@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Git CMS example</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">Git CMS</p>
+        <h1>Content editor</h1>
+        <p class="intro">Save a text file to a draft pull request.</p>
+      </header>
+
+      <section id="signed-out" class="card">
+        <p>Sign in with GitHub to edit the configured repository.</p>
+        <a class="button" href="/auth/github/start">Sign in with GitHub</a>
+      </section>
+
+      <section id="editor" class="card" hidden>
+        <div class="user-bar">
+          <span id="user"></span>
+          <button id="sign-out" class="link-button" type="button">Sign out</button>
+        </div>
+        <form id="save-form">
+          <label for="filename">File name</label>
+          <input id="filename" name="filename" placeholder="content/welcome.md" required />
+          <small class="hint">Use an allowed path, for example <code>content/welcome.md</code>, <code>pages/about.md</code>, or <code>README.md</code>.</small>
+
+          <label for="content">Content</label>
+          <textarea id="content" name="content" rows="16" placeholder="Write your content here…"></textarea>
+
+          <button id="save" class="button" type="submit">Save</button>
+        </form>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
