@@ -1,0 +1,30 @@
+[server]
+bind = "127.0.0.1:3000"
+public_base_url = "http://localhost:3000"
+frontend_callback_url = "http://localhost:5173/auth/callback"
+
+[repository]
+owner = "juri1212"
+name = "git-cms"
+default_branch = "main"
+local_path = ".cms/repos/git-cms"
+branch_prefix = "cms/"
+commit_author_name = "Git CMS"
+commit_author_email = "git-cms@example.com"
+
+[content]
+roots = ["content/**", "pages/**", "data/**/*.json", "data/**/*.yaml", "data/**/*.yml", "README.md"]
+max_file_bytes = 1048576
+editable_extensions = ["md", "mdx", "json", "yaml", "yml", "txt"]
+
+[github]
+app_id_env = "GITHUB_APP_ID"
+client_id_env = "GITHUB_CLIENT_ID"
+client_secret_env = "GITHUB_CLIENT_SECRET"
+private_key_pem_env = "GITHUB_APP_PRIVATE_KEY"
+installation_id_env = "GITHUB_INSTALLATION_ID"
+webhook_secret_env = "GITHUB_WEBHOOK_SECRET"
+
+[access]
+allowed_users = []
+allowed_orgs = []
